@@ -5,6 +5,7 @@ import { WhatsappClientModule } from './whatsapp-client/whatsapp-client.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CommandModule } from './command/command.module';
 import { MongooseModule } from '@nestjs/mongoose';
+import { GroupModule } from './group/group.module';
 import mongoConfig from './config/mongo.config';
 
 @Module({
@@ -13,6 +14,7 @@ import mongoConfig from './config/mongo.config';
     MongooseModule.forRoot(mongoConfig.mongoUri!),
     WhatsappClientModule,
     CommandModule,
+    GroupModule,
   ],
   controllers: [AppController],
   providers: [AppService],

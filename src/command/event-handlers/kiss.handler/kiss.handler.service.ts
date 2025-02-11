@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Commands } from 'src/command/constants/command.constants';
 import { CommandPayload } from 'src/command/interfaces/command.interfaces';
-import { getRandomKissImage } from '../../utils/event-handlers.utils';
+import { getRandomKissImage } from '../utils/event-handlers.utils';
 import {
   getMentionedJids,
   jidToNumber,

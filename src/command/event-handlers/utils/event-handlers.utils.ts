@@ -13,3 +13,20 @@ export const getRandomKissImage = (): string => {
     image[Math.floor(Math.random() * image.length)],
   );
 };
+
+export const getRandomNumber = (): number => {
+  const time = new Date().getTime();
+  return time;
+};
+
+export const getNumberFromString = (
+  numberString: string | undefined,
+): { amount: number; isNumber: boolean } => {
+  if (numberString === undefined) return { amount: 50, isNumber: true };
+
+  const regex = /^\d+$/;
+  const isNumber = regex.test(numberString);
+  if (isNumber) return { amount: parseInt(numberString), isNumber: true };
+
+  return { amount: 0, isNumber: false };
+};

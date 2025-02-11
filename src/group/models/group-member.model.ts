@@ -1,4 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { ItemsStore } from './items-store.model';
 
 @Schema({ timestamps: true })
 export class GroupMember {
@@ -13,6 +14,9 @@ export class GroupMember {
   @Prop()
   name: string;
 
+  @Prop()
+  group: string;
+
   @Prop({ default: false })
   isAdmin: boolean;
 
@@ -21,6 +25,9 @@ export class GroupMember {
 
   @Prop({ default: 0 })
   balance: number;
+
+  @Prop({ type: String, ref: ItemsStore.NAME, default: 'BH' })
+  tool: string;
 
   @Prop()
   createdAt: Date;

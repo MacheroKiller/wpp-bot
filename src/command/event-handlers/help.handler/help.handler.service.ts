@@ -11,8 +11,20 @@ export class HelpHandlerService {
     const helpMessage = `Welcome to the help menu! 🤖
 *Available commands:*
 - *${Commands.HELP}*: Display this message.
-- *${Commands.COIN_FLIP}*: 1. Flip a coin. 2. Write face or seal to predict the result.
-- *${Commands.KISS}*: Mention someone to kiss him.`;
+- *${Commands.KISS}*: Mention someone to kiss him (unavailable).
+- *${Commands.CREATE_ACCOUNT}*: Create an account to play MACHMINE!.
+- *${Commands.COIN_FLIP}*: Flip a coin.
+- *${Commands.COIN_FLIP}*: <seal/face> to predict the result of the coin flip for default is $50MP.
+- *${Commands.COIN_FLIP}*: <seal/face> <money> to bet an amount of money.
+- *${Commands.BALANCE} / ${Commands.MONEY}*: Know you balance.
+- *${Commands.PASS_MONEY}*: <@user> <money> pass money to someone.
+- *${Commands.MINE}*: Mine some money.
+- *${Commands.STORE}*: Items available in the shop!
+- *${Commands.BUY}*: <ItemID> Buy items.
+- *${Commands.INFO}*: <ItemID> Know the stats about an item.
+- *${Commands.PROFILE}*: Know the stats about you.
+`;
+
     await client._wppSocket.sendMessage(senderJid, { text: helpMessage });
   }
 }

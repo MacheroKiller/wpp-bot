@@ -34,6 +34,7 @@ export class MessageHandlerService {
       ) {
         return;
       }
+
       if (isCommandMessage(message)) {
         const { command, args } = parseCommand(message);
         this._commandService.handleCommand(command, {

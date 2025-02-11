@@ -4,11 +4,11 @@ import { WAMessage } from 'baileys';
 import { coinFlip, Commands } from 'src/command/constants/command.constants';
 import { CommandPayload } from 'src/command/interfaces/command.interfaces';
 import { GroupService } from 'src/group/services/group.service';
-import {
-  getNumberFromString,
-  getRandomNumber,
-} from '../utils/event-handlers.utils';
 import { AccountHandlerService } from '../account.handler/account.handler.service';
+import {
+  getRandomNumber,
+  getNumberFromString,
+} from '../../utils/event-handlers.utils';
 
 @Injectable()
 export class CoinFlipHandlerService {
@@ -18,17 +18,12 @@ export class CoinFlipHandlerService {
   ) {}
 
   @OnEvent(Commands.COIN_FLIP)
-  async handleCoinFlip(payload: CommandPayload) {
+  private async handleCoinFlip(payload: CommandPayload) {
     const { groupJid, senderJid, args, WaMessage, client } = payload;
-
-    // Can continue?
-    if (!(await this._accountHandler.handleCommandTime(payload))) {
-      return;
-    }
 
     const coinFlipResult = getRandomNumber() % 2 === 0 ? 'Face' : 'Seal';
 
-    if (args.length === 0) {
+    if (!args.length) {
       await client._wppSocket.sendMessage(
         groupJid,
         { text: `The result is: ${coinFlipResult}.` },
@@ -36,6 +31,12 @@ export class CoinFlipHandlerService {
       );
       return;
     }
+
+    // Can continue --> This is when the user has an account and bet a number
+    if (!(await this._accountHandler.handleCommandTime(payload))) {
+      return;
+    }
+
     // Bet prediction
     const userPrediction = args[0].toLowerCase();
     const { amount, isNumber } = getNumberFromString(args[1]);

@@ -5,6 +5,7 @@ import { CommandPayload } from 'src/command/interfaces/command.interfaces';
 import { GroupMember } from 'src/group/models/group-member.model';
 import { GroupService } from 'src/group/services/group.service';
 import { jidToNumber } from 'src/whatsapp-client/event-handlers/message-handler/utils/message-handler.utils';
+import { getFormatedNumber } from '../../utils/event-handlers.utils';
 
 @Injectable()
 export class AccountHandlerService {
@@ -30,19 +31,19 @@ export class AccountHandlerService {
     const groupMember = {
       jid: jidToNumber(senderJid),
       name: WaMessage.pushName,
-      balance: 500,
+      group: groupJid,
+      balance: 250,
     } as GroupMember;
     await this._groupService.createGroupMember(groupMember);
     await client._wppSocket.sendMessage(
       groupJid,
       {
-        text: `New account created with *$500MP*`,
+        text: `New account created with *${getFormatedNumber(groupMember.balance)}*`,
       },
       { quoted: WaMessage },
     );
   }
 
-  @OnEvent(Commands.NO_ACCOUNT)
   async handleNoAccount(payload: CommandPayload) {
     const { groupJid, WaMessage, client } = payload;
 
@@ -55,7 +56,6 @@ export class AccountHandlerService {
     );
   }
 
-  @OnEvent(Commands.NO_USER_FOUND)
   async handleNoUserFound(payload: CommandPayload) {
     const { groupJid, WaMessage, client } = payload;
 
@@ -81,11 +81,11 @@ export class AccountHandlerService {
     const time = date - user.updatedAt.getTime();
     const minutes = Math.floor(time / 60000);
 
-    if (minutes < 1) {
+    if (5 > minutes) {
       await client._wppSocket.sendMessage(
         groupJid,
         {
-          text: `You can only use this command every minute.`,
+          text: `Wait *${5 - minutes} minutes* to use the next command!`,
         },
         { quoted: WaMessage },
       );

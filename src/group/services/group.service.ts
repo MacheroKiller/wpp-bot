@@ -23,24 +23,12 @@ export class GroupService {
     );
   }
 
-  async createGroupMember(groupMember: GroupMember) {
-    return await this._groupMemberModel.updateOne(
-      {
-        jid: groupMember.jid,
-      },
-      {
-        $setOnInsert: { ...groupMember, balance: 500 },
-      },
-      { upsert: true },
-    );
+  async createGroupMember(groupMember: GroupMember): Promise<GroupMember> {
+    return await this._groupMemberModel.create({ ...groupMember });
   }
 
-  async getGroupMemberByJid(senderJid: string): Promise<GroupMember> {
-    const jid = jidToNumber(senderJid);
-    const groupMember = await this._groupMemberModel.findOne({ jid }).exec();
-    if (!groupMember) {
-      return {} as GroupMember;
-    }
-    return groupMember;
+  async getGroupMemberByJid(jidMember: string) {
+    const jid = jidToNumber(jidMember);
+    return await this._groupMemberModel.findOne({ jid }).exec();
   }
 }

@@ -21,10 +21,12 @@ export const getRandomNumber = (): number => {
 
 export const getNumberFromString = (
   numberString: string | undefined,
-): { userBet: number; isNumber: boolean } => {
-  if (numberString === undefined) return { userBet: 50, isNumber: true };
+): { amount: number; isNumber: boolean } => {
+  if (numberString === undefined) return { amount: 50, isNumber: true };
+
   const regex = /^\d+$/;
   const isNumber = regex.test(numberString);
-  if (isNumber) return { userBet: parseInt(numberString), isNumber: true };
-  return { userBet: 0, isNumber: false };
+  if (isNumber) return { amount: parseInt(numberString), isNumber: true };
+
+  return { amount: 0, isNumber: false };
 };

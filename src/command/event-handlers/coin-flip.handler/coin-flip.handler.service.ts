@@ -8,14 +8,24 @@ import {
   getNumberFromString,
   getRandomNumber,
 } from '../utils/event-handlers.utils';
+import { AccountHandlerService } from '../account.handler/account.handler.service';
 
 @Injectable()
 export class CoinFlipHandlerService {
-  constructor(private readonly _groupService: GroupService) {}
+  constructor(
+    private readonly _groupService: GroupService,
+    private readonly _accountHandler: AccountHandlerService,
+  ) {}
 
   @OnEvent(Commands.COIN_FLIP)
   async handleCoinFlip(payload: CommandPayload) {
     const { groupJid, senderJid, args, WaMessage, client } = payload;
+
+    // Can continue?
+    if (!(await this._accountHandler.handleCommandTime(payload))) {
+      return;
+    }
+
     const coinFlipResult = getRandomNumber() % 2 === 0 ? 'Face' : 'Seal';
 
     if (args.length === 0) {
@@ -28,7 +38,7 @@ export class CoinFlipHandlerService {
     }
     // Bet prediction
     const userPrediction = args[0].toLowerCase();
-    const { userBet, isNumber } = getNumberFromString(args[1]);
+    const { amount, isNumber } = getNumberFromString(args[1]);
 
     if (!isNumber) {
       await this.errorBetMessage(groupJid, WaMessage, client);
@@ -41,18 +51,12 @@ export class CoinFlipHandlerService {
 
     const user = await this._groupService.getGroupMemberByJid(senderJid);
 
-    if (user.balance === undefined) {
-      await client._wppSocket.sendMessage(
-        groupJid,
-        {
-          text: `First create a balance with the command *!${Commands.BALANCE}*`,
-        },
-        { quoted: WaMessage },
-      );
+    if (!user) {
+      await this._accountHandler.handleNoAccount(payload);
       return;
     }
 
-    if (user.balance <= 0) {
+    if (user.balance <= 0 || amount > user.balance) {
       await client._wppSocket.sendMessage(
         groupJid,
         {
@@ -66,19 +70,17 @@ export class CoinFlipHandlerService {
     const isPredictionCorrect = coinFlipResult.toLowerCase() === userPrediction;
 
     const resultMessage = isPredictionCorrect
-      ? `Nice prediction! Youre the oracle *+$${userBet}MP*.`
-      : `Oops! You got it wrong *-$${userBet}MP*.`;
+      ? `Nice prediction! Youre the oracle *+$${amount}MP*.`
+      : `Oops! You got it wrong *-$${amount}MP*.`;
 
     await client._wppSocket.sendMessage(
       groupJid,
-      { text: `The result is: ${coinFlipResult}. ${resultMessage}` },
+      { text: `The result is: *${coinFlipResult}*. ${resultMessage}` },
       { quoted: WaMessage },
     );
 
     // Update user balance
-    const newBalance = (user.balance += isPredictionCorrect
-      ? userBet
-      : -userBet);
+    const newBalance = (user.balance += isPredictionCorrect ? amount : -amount);
     await this._groupService.newBalanceMember(user, newBalance);
   }
 

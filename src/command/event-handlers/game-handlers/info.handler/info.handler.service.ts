@@ -16,9 +16,12 @@ export class InfoHandlerService {
 
   @OnEvent(Commands.PROFILE)
   private async handleProfile(payload: CommandPayload) {
-    const { senderJid, WaMessage, client } = payload;
+    const { groupJid, senderJid, WaMessage, client } = payload;
 
-    const user = await this._groupService.getGroupMemberByJid(senderJid);
+    const user = await this._groupService.getGroupMemberByJid(
+      senderJid,
+      groupJid,
+    );
 
     if (!user) {
       await this._accountHandler.handleNoAccount(payload);
@@ -42,7 +45,10 @@ export class InfoHandlerService {
   private async handleInfo(payload: CommandPayload) {
     const { groupJid, senderJid, args, WaMessage, client } = payload;
 
-    const user = (await this._groupService.getGroupMemberByJid(senderJid))!;
+    const user = (await this._groupService.getGroupMemberByJid(
+      senderJid,
+      groupJid,
+    ))!;
 
     if (!user) {
       await this._accountHandler.handleNoAccount(payload);

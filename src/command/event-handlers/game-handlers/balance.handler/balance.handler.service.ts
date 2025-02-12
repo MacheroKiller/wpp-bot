@@ -26,7 +26,10 @@ export class BalanceHandlerService {
     const mentionedJids = getMentionedJids(WaMessage);
     const jidToFind = mentionedJids?.length ? mentionedJids[0] : senderJid;
 
-    const response = await this._groupService.getGroupMemberByJid(jidToFind);
+    const response = await this._groupService.getGroupMemberByJid(
+      jidToFind,
+      groupJid,
+    );
 
     if (!response) {
       await this._accountHandler.handleNoUserFound(payload);
@@ -57,9 +60,13 @@ export class BalanceHandlerService {
       return;
     }
 
-    const sender = await this._groupService.getGroupMemberByJid(senderJid);
+    const sender = await this._groupService.getGroupMemberByJid(
+      senderJid,
+      groupJid,
+    );
     const receiver = await this._groupService.getGroupMemberByJid(
       mentionedJids[0],
+      groupJid,
     );
     const { amount, isNumber } = getNumberFromString(args[1]);
 

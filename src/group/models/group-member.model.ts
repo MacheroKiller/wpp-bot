@@ -15,7 +15,7 @@ export class GroupMember {
   name: string;
 
   @Prop()
-  group: string;
+  groupJid: string;
 
   @Prop({ default: false })
   isAdmin: boolean;
@@ -36,7 +36,7 @@ export class GroupMember {
   updatedAt: Date;
 }
 const _schema = SchemaFactory.createForClass(GroupMember);
-_schema.index({ jid: 1 }, { unique: true });
+_schema.index({ groupJid: 1 }, { unique: true });
 
 export const groupMemberDefinition = {
   name: GroupMember.NAME,

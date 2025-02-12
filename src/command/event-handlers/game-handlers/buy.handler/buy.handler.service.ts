@@ -17,7 +17,10 @@ export class BuyHandlerService {
   private async handleBuy(payload: CommandPayload) {
     const { groupJid, senderJid, args, WaMessage, client } = payload;
 
-    const user = await this._groupService.getGroupMemberByJid(senderJid);
+    const user = await this._groupService.getGroupMemberByJid(
+      senderJid,
+      groupJid,
+    );
 
     if (!user) {
       await this._accountHandler.handleNoAccount(payload);

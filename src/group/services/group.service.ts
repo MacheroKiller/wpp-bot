@@ -20,7 +20,7 @@ export class GroupService {
 
   newBalanceMember(groupMember: GroupMember, newBalance: number) {
     return this._groupMemberModel.findOneAndUpdate(
-      { jid: groupMember.jid },
+      { jid: groupMember.jid, groupJid: groupMember.groupJid },
       { $set: { balance: newBalance } },
       { new: true },
     );
@@ -28,7 +28,7 @@ export class GroupService {
 
   newToolMember(groupMember: GroupMember, newTool: string) {
     return this._groupMemberModel.findOneAndUpdate(
-      { jid: groupMember.jid },
+      { jid: groupMember.jid, groupJid: groupMember.groupJid },
       { $set: { tool: newTool } },
       { new: true },
     );
@@ -38,9 +38,9 @@ export class GroupService {
     return this._groupMemberModel.create({ ...groupMember });
   }
 
-  getGroupMemberByJid(jidMember: string) {
+  getGroupMemberByJid(jidMember: string, groupJid: string) {
     const jid = jidToNumber(jidMember);
-    return this._groupMemberModel.findOne({ jid }).exec();
+    return this._groupMemberModel.findOne({ jid, groupJid }).exec();
   }
 
   // Store - items service

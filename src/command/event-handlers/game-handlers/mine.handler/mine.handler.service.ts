@@ -20,7 +20,10 @@ export class MineHandlerService {
       return;
     }
 
-    const user = (await this._groupService.getGroupMemberByJid(senderJid))!;
+    const user = (await this._groupService.getGroupMemberByJid(
+      senderJid,
+      groupJid,
+    ))!;
 
     const userTool = await this._groupService.getStoreItemById(user.tool);
 

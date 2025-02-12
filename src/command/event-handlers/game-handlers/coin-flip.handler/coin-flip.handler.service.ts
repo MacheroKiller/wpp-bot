@@ -50,7 +50,10 @@ export class CoinFlipHandlerService {
       return;
     }
 
-    const user = await this._groupService.getGroupMemberByJid(senderJid);
+    const user = await this._groupService.getGroupMemberByJid(
+      senderJid,
+      groupJid,
+    );
 
     if (!user) {
       await this._accountHandler.handleNoAccount(payload);

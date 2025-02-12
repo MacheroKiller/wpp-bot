@@ -15,7 +15,10 @@ export class AccountHandlerService {
   private async handleCreateAccount(payload: CommandPayload) {
     const { groupJid, senderJid, WaMessage, client } = payload;
 
-    const response = await this._groupService.getGroupMemberByJid(senderJid);
+    const response = await this._groupService.getGroupMemberByJid(
+      senderJid,
+      groupJid,
+    );
 
     if (response) {
       await client._wppSocket.sendMessage(
@@ -31,7 +34,7 @@ export class AccountHandlerService {
     const groupMember = {
       jid: jidToNumber(senderJid),
       name: WaMessage.pushName,
-      group: groupJid,
+      groupJid,
       balance: 250,
     } as GroupMember;
     await this._groupService.createGroupMember(groupMember);
@@ -71,21 +74,30 @@ export class AccountHandlerService {
   async handleCommandTime(payload: CommandPayload): Promise<boolean> {
     const { groupJid, senderJid, WaMessage, client } = payload;
 
-    const user = await this._groupService.getGroupMemberByJid(senderJid);
+    const user = await this._groupService.getGroupMemberByJid(
+      senderJid,
+      groupJid,
+    );
     if (!user) {
       await this.handleNoAccount(payload);
       return false;
     }
 
+    if (user.updatedAt.getTime() === user.createdAt.getTime()) {
+      return true;
+    }
+
     const date = new Date().getTime();
     const time = date - user.updatedAt.getTime();
-    const minutes = Math.floor(time / 60000);
+    const minutes = time / 60000;
+    const timeToWait = 2;
+    const timeToWaitInSeconds = Math.floor((timeToWait - minutes) * 60);
 
-    if (5 > minutes) {
+    if (timeToWait > minutes) {
       await client._wppSocket.sendMessage(
         groupJid,
         {
-          text: `Wait *${5 - minutes} minutes* to use the next command!`,
+          text: `*Police anti-spam:* NOT SO FAST! Wait *${timeToWaitInSeconds} seconds* to use the next command!`,
         },
         { quoted: WaMessage },
       );

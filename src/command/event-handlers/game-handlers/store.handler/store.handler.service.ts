@@ -13,21 +13,22 @@ export class StoreHandlerService {
   ) {}
 
   @OnEvent(Commands.STORE)
-  private async handleMine(payload: CommandPayload) {
-    const { groupJid, WaMessage, client } = payload;
+  private async handleStore(payload: CommandPayload) {
+    const { senderJid, WaMessage, client } = payload;
 
     await client._wppSocket.sendMessage(
-      groupJid,
+      senderJid,
       {
-        text: `*Welcome to the great piggy Nin!*
+        text: `🐽 *Welcome to the great piggy Nin!* 🐽
 -  ID   -  Pickaxe   -   Price
-- (WP) Wooden Pickaxe: *$1.000 MP*
-- (SP) Stone Pickaxe: *$10.000 MP*
-- (IP) Iron Pickaxe: *$100.000 MP*
-- (GP) Gold Pickaxe: *$1M MP*
-- (DP) Diamond Pickaxe: *$10M MP*
-- (NP) Netherite Pickaxe: *$1000M MP*
-- Use !buy <id pickaxe> to buy`,
+- (WP) Wooden Pickaxe: *$1'000 MP*
+- (SP) Stone Pickaxe: *$10'000 MP*
+- (GP) Gold Pickaxe: *$5'000 MP*
+- (IP) Iron Pickaxe: *$100'000 MP*
+- (DP) Diamond Pickaxe: *$1M MP*
+- (NP) Netherite Pickaxe: *$10M MP*
+- Use *!buy <id pickaxe>* to buy a pickaxe
+- Use *!info <id pickaxe>* to see the pickaxe info`,
       },
       { quoted: WaMessage },
     );

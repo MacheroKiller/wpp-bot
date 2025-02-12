@@ -6,7 +6,10 @@ import { CommandPayload } from 'src/command/interfaces/command.interfaces';
 import { GroupService } from 'src/group/services/group.service';
 import { getMentionedJids } from 'src/whatsapp-client/event-handlers/message-handler/utils/message-handler.utils';
 import { AccountHandlerService } from '../account.handler/account.handler.service';
-import { getNumberFromString } from '../utils/event-handlers.utils';
+import {
+  getFormatedNumber,
+  getNumberFromString,
+} from '../../utils/event-handlers.utils';
 
 @Injectable()
 export class BalanceHandlerService {
@@ -17,13 +20,16 @@ export class BalanceHandlerService {
 
   @OnEvent(Commands.BALANCE)
   @OnEvent(Commands.MONEY)
-  async handleBalance(payload: CommandPayload) {
+  private async handleBalance(payload: CommandPayload) {
     const { groupJid, senderJid, WaMessage, client } = payload;
 
     const mentionedJids = getMentionedJids(WaMessage);
     const jidToFind = mentionedJids?.length ? mentionedJids[0] : senderJid;
 
-    const response = await this._groupService.getGroupMemberByJid(jidToFind);
+    const response = await this._groupService.getGroupMemberByJid(
+      jidToFind,
+      groupJid,
+    );
 
     if (!response) {
       await this._accountHandler.handleNoUserFound(payload);
@@ -33,7 +39,7 @@ export class BalanceHandlerService {
     await client._wppSocket.sendMessage(
       groupJid,
       {
-        text: `${response.name} balance is *$${response.balance}MP*`,
+        text: `${response.name} balance is *${getFormatedNumber(response.balance)}*`,
       },
       { quoted: WaMessage },
     );
@@ -54,9 +60,13 @@ export class BalanceHandlerService {
       return;
     }
 
-    const sender = await this._groupService.getGroupMemberByJid(senderJid);
+    const sender = await this._groupService.getGroupMemberByJid(
+      senderJid,
+      groupJid,
+    );
     const receiver = await this._groupService.getGroupMemberByJid(
       mentionedJids[0],
+      groupJid,
     );
     const { amount, isNumber } = getNumberFromString(args[1]);
 
@@ -88,7 +98,7 @@ export class BalanceHandlerService {
     await client._wppSocket.sendMessage(
       groupJid,
       {
-        text: `*${sender.name}* passed *$${amount}MP* to *${receiver.name}*`,
+        text: `*${sender.name}* passed *${getFormatedNumber(amount)}* to *${receiver.name}*`,
       },
       { quoted: WaMessage },
     );

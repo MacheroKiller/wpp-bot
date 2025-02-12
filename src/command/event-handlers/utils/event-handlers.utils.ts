@@ -30,3 +30,9 @@ export const getNumberFromString = (
 
   return { amount: 0, isNumber: false };
 };
+
+export const getFormatedNumber = (number: number): string => {
+  return (
+    '$' + Intl.NumberFormat('es-ES').format(number).replace(/\./g, "'") + 'MP'
+  );
+};

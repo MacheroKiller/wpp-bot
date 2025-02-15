@@ -11,6 +11,9 @@ export class ItemsStore {
   name: string;
 
   @Prop()
+  type: string;
+
+  @Prop()
   price: number;
 
   @Prop()
@@ -22,6 +25,7 @@ export class ItemsStore {
 
 const _schema = SchemaFactory.createForClass(ItemsStore);
 _schema.index({ name: 1 }, { unique: true });
+_schema.index({ id: 1 }, { unique: true });
 
 export const itemsStoreDefinition = {
   name: ItemsStore.NAME,

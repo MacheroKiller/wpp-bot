@@ -4,95 +4,75 @@ import { Commands } from 'src/command/constants/command.constants';
 import { GroupService } from 'src/group/services/group.service';
 import { AccountHandlerService } from '../account.handler/account.handler.service';
 import { CommandPayload } from 'src/command/interfaces/command.interfaces';
-import { getFormatedNumber } from '../../utils/event-handlers.utils';
-import { WAMessage } from 'baileys';
+import { getMentionedJids } from 'src/whatsapp-client/event-handlers/message-handler/utils/message-handler.utils';
+import { MessageSenderService } from '../message.sender/message.sender.service';
+import {
+  errorIdItemNotFoundMessage,
+  itemProfile,
+  userProfile,
+} from '../../utils/message-sender.utils';
 
 @Injectable()
 export class InfoHandlerService {
   constructor(
     private readonly _groupService: GroupService,
     private readonly _accountHandler: AccountHandlerService,
+    private readonly _messageSender: MessageSenderService,
   ) {}
 
   @OnEvent(Commands.PROFILE)
   private async handleProfile(payload: CommandPayload) {
-    const { groupJid, senderJid, WaMessage, client } = payload;
+    const { groupJid, WaMessage, client } = payload;
 
-    const user = await this._groupService.getGroupMemberByJid(
-      senderJid,
-      groupJid,
+    const needTarget = !!getMentionedJids(WaMessage).length;
+
+    const { user, target } =
+      await this._accountHandler.genericVerifyUserColdownAndTarget(
+        payload,
+        false,
+        needTarget,
+      );
+
+    const response = needTarget ? target : user;
+    // No user found
+    if (!response) return;
+
+    const userTool = await this._groupService.getStoreItemById(response.tool);
+    const userWeapon = await this._groupService.getStoreItemById(
+      response.weapon,
     );
 
-    if (!user) {
-      await this._accountHandler.handleNoAccount(payload);
-      return;
-    }
-    const userTool = await this._groupService.getStoreItemById(user.tool);
-
-    await client._wppSocket.sendMessage(
-      senderJid,
-      {
-        text: `*Butter God 🧈:* Human! Your stats are:
-- *Name:* ${user.name}
-- *Balance:* ${getFormatedNumber(user.balance)}
-- *Tool:* ${userTool?.name}`,
-      },
-      { quoted: WaMessage },
+    await this._messageSender.handleMessage(
+      groupJid,
+      WaMessage,
+      client,
+      userProfile(response, userTool!, userWeapon!),
     );
   }
 
   @OnEvent(Commands.INFO)
   private async handleInfo(payload: CommandPayload) {
-    const { groupJid, senderJid, args, WaMessage, client } = payload;
+    const { groupJid, args, WaMessage, client } = payload;
 
-    const user = (await this._groupService.getGroupMemberByJid(
-      senderJid,
-      groupJid,
-    ))!;
+    const itemToFind = args[0] ? args[0].toUpperCase() : '';
 
-    if (!user) {
-      await this._accountHandler.handleNoAccount(payload);
+    const item = await this._groupService.getStoreItemById(itemToFind);
+
+    if (!item) {
+      await this._messageSender.handleMessage(
+        groupJid,
+        WaMessage,
+        client,
+        errorIdItemNotFoundMessage,
+      );
       return;
     }
 
-    if (!args.length) {
-      await this.errorItemNoFoundMessage(client, groupJid, WaMessage);
-      return;
-    }
-
-    const userTool = await this._groupService.getStoreItemById(
-      args[0].toUpperCase(),
-    );
-
-    if (!userTool) {
-      await this.errorItemNoFoundMessage(client, groupJid, WaMessage);
-      return;
-    }
-
-    await client._wppSocket.sendMessage(
+    await this._messageSender.handleMessage(
       groupJid,
-      {
-        text: `*Butter God 🧈:* Human! The stats are:
-- *Name:* ${userTool.name}
-- *Price:* ${getFormatedNumber(userTool.price)}
-- *Multiplier:* ${userTool.multiplier}
-- *Description:* ${userTool.description}`,
-      },
-      { quoted: WaMessage },
-    );
-  }
-
-  private async errorItemNoFoundMessage(
-    client,
-    groupJid,
-    WaMessage: WAMessage,
-  ) {
-    await client._wppSocket.sendMessage(
-      groupJid,
-      {
-        text: `*Butter God 🧈:* Stupid human! What item is that? `,
-      },
-      { quoted: WaMessage },
+      WaMessage,
+      client,
+      itemProfile(item),
     );
   }
 }

@@ -29,6 +29,9 @@ export class GroupMember {
   @Prop({ type: String, ref: ItemsStore.NAME, default: 'BH' })
   tool: string;
 
+  @Prop({ type: String, ref: ItemsStore.NAME, default: 'WS' })
+  weapon: string;
+
   @Prop()
   createdAt: Date;
 

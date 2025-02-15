@@ -5,62 +5,65 @@ import { CommandPayload } from 'src/command/interfaces/command.interfaces';
 import { GroupService } from 'src/group/services/group.service';
 import { AccountHandlerService } from '../account.handler/account.handler.service';
 import {
-  dragonMessage,
-  mineSuccessMessage,
+  attackFailMessage,
+  attackSuccessMessage,
 } from '../../utils/message-sender.utils';
 import { MessageSenderService } from '../message.sender/message.sender.service';
 
 @Injectable()
-export class MineHandlerService {
+export class AttackHandlerService {
   constructor(
     private readonly _groupService: GroupService,
     private readonly _accountHandler: AccountHandlerService,
     private readonly _messageSender: MessageSenderService,
   ) {}
 
-  @OnEvent(Commands.MINE)
-  private async handleMine(payload: CommandPayload) {
+  @OnEvent(Commands.ATTACK)
+  private async handleAttack(payload: CommandPayload) {
     const { groupJid, WaMessage, client } = payload;
 
-    const { user } =
+    const { user, target } =
       await this._accountHandler.genericVerifyUserColdownAndTarget(
         payload,
         true,
-        false,
+        true,
       );
 
-    // No user found
-    if (!user) return;
+    // No user or target found
+    if (!user || !target) return;
 
-    const userTool = await this._groupService.getStoreItemById(user.tool);
+    const userWeapon = (await this._groupService.getStoreItemById(
+      user.weapon,
+    ))!;
 
-    const minedAmount = Math.floor(
-      this.getMinedTotalAmount(userTool?.multiplier as number)!,
-    );
-    const newBalance = user.balance + minedAmount;
-    user.balance = newBalance < 0 ? 0 : newBalance;
+    // Attack logic
+    const resultAttack =
+      Math.random() < 0.65
+        ? Math.floor(target.balance * userWeapon.multiplier) / 2
+        : Math.floor(-user.balance * userWeapon.multiplier) / 2;
+
     const finalMessage =
-      minedAmount < 0
-        ? dragonMessage(minedAmount)
-        : mineSuccessMessage(minedAmount);
+      resultAttack <= 0
+        ? attackFailMessage(resultAttack, target)
+        : attackSuccessMessage(resultAttack, target);
 
+    // Update balances
+    user.balance += resultAttack;
     await this._groupService.newBalanceMember(user);
+
+    // if (resultAttack > 0) {
+    //   target.balance -= resultAttack;
+    //   await this._groupService.newBalanceMember(target, false);
+    // }
+
+    target.balance += resultAttack > 0 ? -resultAttack : -resultAttack;
+    await this._groupService.newBalanceMember(target, false);
+
     await this._messageSender.handleMessage(
       groupJid,
       WaMessage,
       client,
       finalMessage,
     );
-  }
-
-  private getMinedTotalAmount(toolMultiplier: number) {
-    const multiplier =
-      (Math.random() <= 0.75 ? toolMultiplier : -toolMultiplier) * 100;
-    console.log(multiplier);
-    const amount = Math.floor(Math.random() * 100);
-    console.log(amount);
-
-    if (amount < 90) return amount * multiplier * 1.5;
-    if (amount <= 100) return amount * multiplier * 2;
   }
 }

@@ -9,6 +9,8 @@ import { CoinFlipHandlerService } from './event-handlers/game-handlers/coin-flip
 import { MineHandlerService } from './event-handlers/game-handlers/mine.handler/mine.handler.service';
 import { StoreHandlerService } from './event-handlers/game-handlers/store.handler/store.handler.service';
 import { BuyHandlerService } from './event-handlers/game-handlers/buy.handler/buy.handler.service';
+import { AttackHandlerService } from './event-handlers/game-handlers/attack.handler/attack.handler.service';
+import { MessageSenderService } from './event-handlers/game-handlers/message.sender/message.sender.service';
 
 @Module({
   providers: [
@@ -21,6 +23,8 @@ import { BuyHandlerService } from './event-handlers/game-handlers/buy.handler/bu
     StoreHandlerService,
     BuyHandlerService,
     InfoHandlerService,
+    AttackHandlerService,
+    MessageSenderService,
   ],
   imports: [GroupModule],
 })

@@ -1,11 +1,13 @@
 import { Boom } from '@hapi/boom';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { ConnectionState, DisconnectReason } from 'baileys';
+import { DisconnectReason } from 'baileys';
 import { WhatsappEvents } from 'src/whatsapp-client/constants/whatsapp-client.constants';
+import { WhatsappEventPayload } from 'src/whatsapp-client/interfaces/command.interfaces';
 
 @Injectable()
 export class ConnectionHandlerService {
+  private readonly _logger = new Logger(ConnectionHandlerService.name);
   constructor() {}
 
   /**
@@ -13,23 +15,39 @@ export class ConnectionHandlerService {
    * @param event
    */
   @OnEvent(WhatsappEvents.CONNECTION_UPDATE)
-  createConnection(event: Partial<ConnectionState>): boolean {
-    const { connection, lastDisconnect } = event;
+  async createConnection(
+    payload: WhatsappEventPayload<WhatsappEvents.CONNECTION_UPDATE>,
+  ): Promise<void> {
+    const { event, handler } = payload;
+    const { connection, lastDisconnect, qr } = event;
+    const disconnectionError = lastDisconnect?.error as Boom;
+
+    if (qr) {
+      this._logger.log('QR code received');
+      return;
+    }
+
     if (connection === 'close') {
-      const shouldReconnect =
-        (lastDisconnect?.error as Boom)?.output?.statusCode !==
-        DisconnectReason.loggedOut;
-      console.log(
-        'connection closed due to ',
-        lastDisconnect?.error,
-        ', reconnecting ',
-        shouldReconnect,
-      );
-      // reconnect if not logged out
-      if (shouldReconnect) {
-        return true;
+      if (
+        disconnectionError?.output?.statusCode !== DisconnectReason.loggedOut &&
+        disconnectionError?.output?.statusCode !==
+          DisconnectReason.connectionReplaced
+      ) {
+        this._logger.log('Reconnecting');
+        await handler.createConnection();
+        return;
+      }
+
+      if (
+        disconnectionError?.output?.statusCode === DisconnectReason.loggedOut
+      ) {
+        this._logger.log('Logged out');
+        return;
       }
     }
-    return false;
+
+    if (connection === 'open') {
+      this._logger.log('Connected');
+    }
   }
 }

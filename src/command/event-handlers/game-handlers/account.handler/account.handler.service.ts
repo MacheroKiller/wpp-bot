@@ -4,29 +4,43 @@ import { Commands } from 'src/command/constants/command.constants';
 import { CommandPayload } from 'src/command/interfaces/command.interfaces';
 import { GroupMember } from 'src/group/models/group-member.model';
 import { GroupService } from 'src/group/services/group.service';
-import { jidToNumber } from 'src/whatsapp-client/event-handlers/message-handler/utils/message-handler.utils';
-import { getFormatedNumber } from '../../utils/event-handlers.utils';
+import {
+  getMentionedJids,
+  jidToNumber,
+} from 'src/whatsapp-client/event-handlers/message-handler/utils/message-handler.utils';
+import { userAndTarget } from '../interfaces/game-handler.interface';
+import { MessageSenderService } from '../message.sender/message.sender.service';
+import {
+  accountAlreadyExists,
+  antiSpamMessage,
+  needMentionSomeone,
+  newAccountCreated,
+  noAccountCreated,
+  noUserFound,
+} from '../../utils/message-sender.utils';
 
 @Injectable()
 export class AccountHandlerService {
-  constructor(private readonly _groupService: GroupService) {}
+  constructor(
+    private readonly _groupService: GroupService,
+    private readonly _messageSender: MessageSenderService,
+  ) {}
 
   @OnEvent(Commands.CREATE_ACCOUNT)
   private async handleCreateAccount(payload: CommandPayload) {
     const { groupJid, senderJid, WaMessage, client } = payload;
 
-    const response = await this._groupService.getGroupMemberByJid(
+    const response = await this._groupService.getGroupMemberByJidAndGroup(
       senderJid,
       groupJid,
     );
 
     if (response) {
-      await client._wppSocket.sendMessage(
+      await this._messageSender.handleMessage(
         groupJid,
-        {
-          text: `You already have an account.`,
-        },
-        { quoted: WaMessage },
+        WaMessage,
+        client,
+        accountAlreadyExists,
       );
       return;
     }
@@ -38,68 +52,98 @@ export class AccountHandlerService {
       balance: 250,
     } as GroupMember;
     await this._groupService.createGroupMember(groupMember);
-    await client._wppSocket.sendMessage(
+
+    // Sendind message
+    await this._messageSender.handleMessage(
       groupJid,
-      {
-        text: `New account created with *${getFormatedNumber(groupMember.balance)}*`,
-      },
-      { quoted: WaMessage },
+      WaMessage,
+      client,
+      newAccountCreated(groupMember.balance),
     );
   }
 
-  async handleNoAccount(payload: CommandPayload) {
-    const { groupJid, WaMessage, client } = payload;
-
-    await client._wppSocket.sendMessage(
-      groupJid,
-      {
-        text: `First create an account with the command *!${Commands.CREATE_ACCOUNT}*`,
-      },
-      { quoted: WaMessage },
-    );
-  }
-
-  async handleNoUserFound(payload: CommandPayload) {
-    const { groupJid, WaMessage, client } = payload;
-
-    await client._wppSocket.sendMessage(
-      groupJid,
-      {
-        text: `No user found.`,
-      },
-      { quoted: WaMessage },
-    );
-  }
-
-  async handleCommandTime(payload: CommandPayload): Promise<boolean> {
+  async genericVerifyUserColdownAndTarget(
+    payload: CommandPayload,
+    isColdown: boolean,
+    needTarget: boolean,
+  ) {
     const { groupJid, senderJid, WaMessage, client } = payload;
 
-    const user = await this._groupService.getGroupMemberByJid(
+    const user = await this._groupService.getGroupMemberByJidAndGroup(
       senderJid,
       groupJid,
     );
+
+    let target: GroupMember = {} as GroupMember;
+
+    const errorCase = {} as userAndTarget;
+
     if (!user) {
-      await this.handleNoAccount(payload);
-      return false;
+      await this._messageSender.handleMessage(
+        groupJid,
+        WaMessage,
+        client,
+        noAccountCreated,
+      );
+      return errorCase;
     }
+
+    if (isColdown && !(await this.handleCommandColdown(payload, user))) {
+      return errorCase;
+    }
+
+    if (needTarget) {
+      const mentionedJid = getMentionedJids(WaMessage);
+      if (!mentionedJid.length) {
+        await this._messageSender.handleMessage(
+          groupJid,
+          WaMessage,
+          client,
+          needMentionSomeone,
+        );
+        return errorCase;
+      }
+      target = (await this._groupService.getGroupMemberByJidAndGroup(
+        mentionedJid[0],
+        groupJid,
+      )) as GroupMember;
+
+      if (!target) {
+        await this._messageSender.handleMessage(
+          groupJid,
+          WaMessage,
+          client,
+          noUserFound,
+        );
+        return errorCase;
+      }
+    }
+
+    return { user, target } as userAndTarget;
+  }
+
+  private async handleCommandColdown(
+    payload: CommandPayload,
+    user: GroupMember,
+  ): Promise<boolean> {
+    const { groupJid, WaMessage, client } = payload;
 
     if (user.updatedAt.getTime() === user.createdAt.getTime()) {
       return true;
     }
 
+    const timeToWait = 0.75;
     const date = new Date().getTime();
     const time = date - user.updatedAt.getTime();
     const minutes = time / 60000;
-    const timeToWait = 2;
     const timeToWaitInSeconds = Math.floor((timeToWait - minutes) * 60);
 
     if (timeToWait > minutes) {
-      await client._wppSocket.sendMessage(
+      await this._messageSender.handleMessage(
         groupJid,
-        {
-          text: `*Police anti-spam:* NOT SO FAST! Wait *${timeToWaitInSeconds} seconds* to use the next command!`,
-        },
-        { quoted: WaMessage },
+        WaMessage,
+        client,
+        antiSpamMessage(timeToWaitInSeconds),
       );
       return false;
     }

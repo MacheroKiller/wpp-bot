@@ -37,10 +37,6 @@ export class ClientHandler {
       },
     });
 
-    this._wppSocket.ev.on('creds.update', async () => {
-      await saveCreds();
-    });
-
     /**
      * Process the events
      */
@@ -53,6 +49,10 @@ export class ClientHandler {
           });
         });
       }
+    });
+
+    this._wppSocket.ev.on('creds.update', async () => {
+      await saveCreds();
     });
 
     return this._wppSocket;

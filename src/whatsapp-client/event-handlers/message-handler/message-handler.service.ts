@@ -35,7 +35,8 @@ export class MessageHandlerService {
         return;
       }
 
-      if (isCommandMessage(message)) {
+      // event.type === 'notify' to avoid the syncronization of the message
+      if (isCommandMessage(message) && event.type === 'notify') {
         const { command, args } = parseCommand(message);
         this._commandService.handleCommand(command, {
           args,

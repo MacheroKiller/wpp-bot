@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { WAMessage } from 'baileys';
 import { Commands } from 'src/command/constants/command.constants';
 import { CommandPayload } from 'src/command/interfaces/command.interfaces';
 import { GroupService } from 'src/group/services/group.service';
@@ -10,139 +9,136 @@ import {
   getFormatedNumber,
   getNumberFromString,
 } from '../../utils/event-handlers.utils';
+import { UserPosition } from './interfaces/balance-top.handler.interface';
+import { MessageSenderService } from '../message.sender/message.sender.service';
+import {
+  errorAmountMessage,
+  errorInsufficientFunds,
+  passMoneySuccessMessage,
+  userBalance,
+} from '../../utils/message-sender.utils';
 
 @Injectable()
 export class BalanceHandlerService {
   constructor(
     private readonly _groupService: GroupService,
     private readonly _accountHandler: AccountHandlerService,
+    private readonly _messageSender: MessageSenderService,
   ) {}
 
   @OnEvent(Commands.BALANCE)
   @OnEvent(Commands.MONEY)
   private async handleBalance(payload: CommandPayload) {
-    const { groupJid, senderJid, WaMessage, client } = payload;
+    const { groupJid, WaMessage, client } = payload;
 
-    const mentionedJids = getMentionedJids(WaMessage);
-    const jidToFind = mentionedJids?.length ? mentionedJids[0] : senderJid;
+    const needTarget = !!getMentionedJids(WaMessage).length;
 
-    const response = await this._groupService.getGroupMemberByJid(
-      jidToFind,
+    const { user, target } =
+      await this._accountHandler.genericVerifyUserColdownAndTarget(
+        payload,
+        false,
+        needTarget,
+      );
+
+    const response = needTarget ? target : user;
+    // No user found
+    if (!response) return;
+
+    await this._messageSender.handleMessage(
       groupJid,
-    );
-
-    if (!response) {
-      await this._accountHandler.handleNoUserFound(payload);
-      return;
-    }
-
-    await client._wppSocket.sendMessage(
-      groupJid,
-      {
-        text: `${response.name} balance is *${getFormatedNumber(response.balance)}*`,
-      },
-      { quoted: WaMessage },
+      WaMessage,
+      client,
+      userBalance(response),
     );
   }
 
   @OnEvent(Commands.PASS_MONEY)
   private async handlePassMoney(payload: CommandPayload) {
-    const { groupJid, senderJid, args, WaMessage, client } = payload;
-    const mentionedJids = getMentionedJids(WaMessage);
+    const { groupJid, args, WaMessage, client } = payload;
 
-    // Can continue?
-    if (!(await this._accountHandler.handleCommandTime(payload))) {
-      return;
-    }
+    const { user, target } =
+      await this._accountHandler.genericVerifyUserColdownAndTarget(
+        payload,
+        false,
+        true,
+      );
 
-    if (!mentionedJids.length) {
-      await this.errorMentionMessage(groupJid, WaMessage, client);
-      return;
-    }
-
-    const sender = await this._groupService.getGroupMemberByJid(
-      senderJid,
-      groupJid,
-    );
-    const receiver = await this._groupService.getGroupMemberByJid(
-      mentionedJids[0],
-      groupJid,
-    );
     const { amount, isNumber } = getNumberFromString(args[1]);
 
-    if (!sender || !receiver) {
-      await this._accountHandler.handleNoUserFound(payload);
-      return;
-    }
-    if (!args[1]) {
-      await this.errorAmountMessage(groupJid, WaMessage, client);
-      return;
-    }
+    // No user or target found
+    if (!user || !target) return;
 
     if (!isNumber) {
-      await this.errorAmountMessage(groupJid, WaMessage, client);
+      await this._messageSender.handleMessage(
+        groupJid,
+        WaMessage,
+        client,
+        errorAmountMessage,
+      );
       return;
     }
 
-    if (sender.balance < amount) {
-      await this.errorInsufficientFunds(groupJid, WaMessage, client);
+    if (user.balance < amount) {
+      await this._messageSender.handleMessage(
+        groupJid,
+        WaMessage,
+        client,
+        errorInsufficientFunds,
+      );
       return;
     }
 
-    await this._groupService.newBalanceMember(sender, sender.balance - amount);
-    await this._groupService.newBalanceMember(
-      receiver,
-      receiver.balance + amount,
+    user.balance -= amount;
+    await this._groupService.newBalanceMember(user, false);
+    target.balance += amount;
+    await this._groupService.newBalanceMember(target, false);
+
+    await this._messageSender.handleMessage(
+      groupJid,
+      WaMessage,
+      client,
+      passMoneySuccessMessage(user, amount, target),
     );
+  }
+
+  @OnEvent(Commands.BALANCE_TOP)
+  private async handleBalanceTop(payload: CommandPayload) {
+    const { groupJid, WaMessage, client } = payload;
+
+    const membersTop =
+      await this._groupService.getTopGroupMembersByGroup(groupJid);
+    const membersWithCounts: UserPosition[] = membersTop.map(
+      (member, index) => ({
+        jid: member.jid,
+        name: member.name,
+        balance: member.balance,
+        position: index + 1,
+      }),
+    );
+
+    const finalMessage = this.buildTopMessage(membersWithCounts);
 
     await client._wppSocket.sendMessage(
       groupJid,
       {
-        text: `*${sender.name}* passed *${getFormatedNumber(amount)}* to *${receiver.name}*`,
+        text: finalMessage,
       },
       { quoted: WaMessage },
     );
   }
 
-  private async errorMentionMessage(
-    groupJid: string,
-    WaMessage: WAMessage,
-    client,
-  ) {
-    await client._wppSocket.sendMessage(
-      groupJid,
-      {
-        text: `Maybe if you mention someone...`,
-      },
-      { quoted: WaMessage },
-    );
-  }
+  private buildTopMessage(membersWithCounts: UserPosition[]): string {
+    let message = `*Butter God 🧈:* My best warriors are:\n`;
+    let prevPosition = -1;
 
-  private async errorAmountMessage(
-    groupJid: string,
-    WaMessage: WAMessage,
-    client,
-  ) {
-    await client._wppSocket.sendMessage(
-      groupJid,
-      {
-        text: `You need to pass an amount of money duuuh!.`,
-      },
-      { quoted: WaMessage },
-    );
-  }
+    membersWithCounts.forEach((member) => {
+      if (prevPosition !== member.position) {
+        message += `${member.position}. `;
+      }
+      message += `${member.name} with *${getFormatedNumber(member.balance)}*\n`;
+      prevPosition = member.position;
+    });
 
-  private async errorInsufficientFunds(
-    groupJid: string,
-    WaMessage: WAMessage,
-    client,
-  ) {
-    await client._wppSocket.sendMessage(
-      groupJid,
-      {
-        text: `You don't have that money bruh.`,
-      },
-      { quoted: WaMessage },
-    );
+    return message;
   }
 }

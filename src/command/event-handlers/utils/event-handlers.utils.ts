@@ -22,7 +22,7 @@ export const getRandomNumber = (): number => {
 export const getNumberFromString = (
   numberString: string | undefined,
 ): { amount: number; isNumber: boolean } => {
-  if (numberString === undefined) return { amount: 50, isNumber: true };
+  if (numberString === undefined) return { amount: 50, isNumber: false };
 
   const regex = /^\d+$/;
   const isNumber = regex.test(numberString);

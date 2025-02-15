@@ -18,18 +18,19 @@ export class GroupService {
     return this._groupMemberModel.find().exec();
   }
 
-  newBalanceMember(groupMember: GroupMember, newBalance: number) {
+  newBalanceMember(groupMember: GroupMember, updateTime: boolean = true) {
     return this._groupMemberModel.findOneAndUpdate(
       { jid: groupMember.jid, groupJid: groupMember.groupJid },
-      { $set: { balance: newBalance } },
-      { new: true },
+      { $set: { balance: groupMember.balance } },
+      { new: true, timestamps: updateTime },
     );
   }
 
-  newToolMember(groupMember: GroupMember, newTool: string) {
+  // We can change this with a better approach
+  newItemMember(groupMember: GroupMember, newWeapon: ItemsStore) {
     return this._groupMemberModel.findOneAndUpdate(
       { jid: groupMember.jid, groupJid: groupMember.groupJid },
-      { $set: { tool: newTool } },
+      { $set: { [newWeapon.type]: newWeapon.id } },
       { new: true },
     );
   }
@@ -38,9 +39,17 @@ export class GroupService {
     return this._groupMemberModel.create({ ...groupMember });
   }
 
-  getGroupMemberByJid(jidMember: string, groupJid: string) {
+  getGroupMemberByJidAndGroup(jidMember: string, groupJid: string) {
     const jid = jidToNumber(jidMember);
     return this._groupMemberModel.findOne({ jid, groupJid }).exec();
+  }
+
+  getTopGroupMembersByGroup(groupJid: string) {
+    return this._groupMemberModel
+      .find({ groupJid })
+      .sort({ balance: -1 })
+      .limit(5)
+      .exec();
   }
 
   // Store - items service

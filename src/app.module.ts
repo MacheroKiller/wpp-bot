@@ -6,6 +6,8 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CommandModule } from './command/command.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { GroupModule } from './group/group.module';
+import { CommandConfigModule } from './command-config/command-config.module';
+import { GroupConfigModule } from './group-config/group-config.module';
 import mongoConfig from './config/mongo.config';
 
 @Module({
@@ -15,6 +17,9 @@ import mongoConfig from './config/mongo.config';
     WhatsappClientModule,
     CommandModule,
     GroupModule,
+    CommandConfigModule,
+    GroupConfigModule,
+    CommandConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -26,7 +26,7 @@ export class MessageHandlerService {
   ): void {
     const { event, handler } = payload;
     const { messages } = event;
-    messages.forEach((message) => {
+    messages.forEach(async (message) => {
       if (
         !isGroupMessage(message) ||
         isOwnMessage(message) ||
@@ -38,7 +38,7 @@ export class MessageHandlerService {
       // event.type === 'notify' to avoid the syncronization of the message
       if (isCommandMessage(message) && event.type === 'notify') {
         const { command, args } = parseCommand(message);
-        this._commandService.handleCommand(command, {
+        await this._commandService.handleCommand(command, {
           args,
           groupJid: message.key.remoteJid!,
           senderJid: message.key.participant!,

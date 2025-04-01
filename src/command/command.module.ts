@@ -1,7 +1,6 @@
 import { InfoHandlerService } from './event-handlers/game-handlers/info.handler/info.handler.service';
 import { Module } from '@nestjs/common';
-import { KissHandlerService } from './event-handlers/kiss.handler/kiss.handler.service';
-import { HelpHandlerService } from './event-handlers/help.handler/help.handler.service';
+import { HelpHandlerService } from './event-handlers/actions-handlers/help.handler/help.handler.service';
 import { GroupModule } from 'src/group/group.module';
 import { AccountHandlerService } from './event-handlers/game-handlers/account.handler/account.handler.service';
 import { BalanceHandlerService } from './event-handlers/game-handlers/balance.handler/balance.handler.service';
@@ -10,14 +9,26 @@ import { MineHandlerService } from './event-handlers/game-handlers/mine.handler/
 import { StoreHandlerService } from './event-handlers/game-handlers/store.handler/store.handler.service';
 import { BuyHandlerService } from './event-handlers/game-handlers/buy.handler/buy.handler.service';
 import { AttackHandlerService } from './event-handlers/game-handlers/attack.handler/attack.handler.service';
-import { MessageSenderService } from './event-handlers/game-handlers/message.sender/message.sender.service';
+import { MessageSenderService } from './event-handlers/actions-handlers/message.sender/message.sender.service';
+import { CommandConfigModule } from 'src/command-config/command-config.module';
+import { KissHandlerService } from './event-handlers/actions-handlers/kiss.handler/kiss.handler.service';
+import { StealHandlerService } from './event-handlers/game-handlers/steal.handler/steal.handler.service';
+import { PunchHandlerService } from './event-handlers/actions-handlers/punch.handler/punch.handler.service';
+import { KillHandlerService } from './event-handlers/actions-handlers/kill.handler/kill.handler.service';
+import { CreateAccountHandlerService } from './event-handlers/game-handlers/create-account.handler/create-account.handler.service';
+import { RouletteHandlerService } from './event-handlers/game-handlers/roulette.handler/roulette.handler.service';
+import { MusicHandlerService } from './event-handlers/multimedia/music-handler/music-handler.service';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
   providers: [
     KissHandlerService,
+    PunchHandlerService,
+    KillHandlerService,
     CoinFlipHandlerService,
     HelpHandlerService,
     BalanceHandlerService,
+    CreateAccountHandlerService,
     AccountHandlerService,
     MineHandlerService,
     StoreHandlerService,
@@ -25,7 +36,10 @@ import { MessageSenderService } from './event-handlers/game-handlers/message.sen
     InfoHandlerService,
     AttackHandlerService,
     MessageSenderService,
+    StealHandlerService,
+    RouletteHandlerService,
+    MusicHandlerService,
   ],
-  imports: [GroupModule],
+  imports: [GroupModule, CommandConfigModule, HttpModule],
 })
 export class CommandModule {}

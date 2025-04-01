@@ -1,17 +1,23 @@
 export enum Commands {
   KISS = 'kiss',
   PUNCH = 'punch',
+  KILL = 'kill',
   HELP = 'help',
-  COIN_FLIP = 'coinflip', // !coinflip <face/seal> <money>
+  COIN_FLIP = 'coinflip',
   BALANCE = 'balance',
   BALANCE_TOP = 'balancetop',
   MONEY = 'money',
-  PASS_MONEY = 'passmoney', // !passmoney @user 100
+  PASS_MONEY = 'passmoney',
   CREATE_ACCOUNT = 'create',
   MINE = 'mine',
   STORE = 'store',
-  BUY = 'buy', // !buy <itemID>
-  INFO = 'info', // !info <itemID>
-  PROFILE = 'profile', // !profile
-  ATTACK = 'attack', // !attack @user - !attack <empty> -> random user
+  BUY = 'buy',
+  INFO = 'info',
+  PROFILE = 'profile',
+  STEAL = 'steal',
+  ATTACK = 'attack',
+  ROULETTE = 'roulette',
+  MUSIC = 'music',
 }
+
+export const Cooldown = 'Cooldown';

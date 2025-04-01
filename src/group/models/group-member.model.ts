@@ -23,7 +23,7 @@ export class GroupMember {
   @Prop({ default: true })
   active: boolean;
 
-  @Prop({ default: 0 })
+  @Prop({ default: 500 })
   balance: number;
 
   @Prop({ type: String, ref: ItemsStore.NAME, default: 'BH' })
@@ -31,6 +31,18 @@ export class GroupMember {
 
   @Prop({ type: String, ref: ItemsStore.NAME, default: 'WS' })
   weapon: string;
+
+  @Prop({ default: 0 })
+  mineCooldown: Date;
+
+  @Prop({ default: 0 })
+  stealCooldown: Date;
+
+  @Prop({ default: 0 })
+  coinflipCooldown: Date;
+
+  @Prop({ default: 0 })
+  rouletteCooldown: Date;
 
   @Prop()
   createdAt: Date;

@@ -4,13 +4,13 @@ import { Commands } from 'src/command/constants/command.constants';
 import { GroupService } from 'src/group/services/group.service';
 import { AccountHandlerService } from '../account.handler/account.handler.service';
 import { CommandPayload } from 'src/command/interfaces/command.interfaces';
-import { getMentionedJids } from 'src/whatsapp-client/event-handlers/message-handler/utils/message-handler.utils';
-import { MessageSenderService } from '../message.sender/message.sender.service';
+import { MessageSenderService } from '../../actions-handlers/message.sender/message.sender.service';
 import {
   errorIdItemNotFoundMessage,
   itemProfile,
   userProfile,
 } from '../../utils/message-sender.utils';
+import { GroupMember } from 'src/group/models/group-member.model';
 
 @Injectable()
 export class InfoHandlerService {
@@ -21,21 +21,14 @@ export class InfoHandlerService {
   ) {}
 
   @OnEvent(Commands.PROFILE)
-  private async handleProfile(payload: CommandPayload) {
+  private async handleProfile(
+    payload: CommandPayload,
+    user: GroupMember,
+    target: GroupMember,
+  ) {
     const { groupJid, WaMessage, client } = payload;
 
-    const needTarget = !!getMentionedJids(WaMessage).length;
-
-    const { user, target } =
-      await this._accountHandler.genericVerifyUserColdownAndTarget(
-        payload,
-        false,
-        needTarget,
-      );
-
-    const response = needTarget ? target : user;
-    // No user found
-    if (!response) return;
+    const response = target.name ? target : user;
 
     const userTool = await this._groupService.getStoreItemById(response.tool);
     const userWeapon = await this._groupService.getStoreItemById(

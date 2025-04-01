@@ -3,20 +3,20 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { Commands } from 'src/command/constants/command.constants';
 import { CommandPayload } from 'src/command/interfaces/command.interfaces';
 import { GroupService } from 'src/group/services/group.service';
-import { getMentionedJids } from 'src/whatsapp-client/event-handlers/message-handler/utils/message-handler.utils';
 import { AccountHandlerService } from '../account.handler/account.handler.service';
 import {
   getFormatedNumber,
   getNumberFromString,
 } from '../../utils/event-handlers.utils';
 import { UserPosition } from './interfaces/balance-top.handler.interface';
-import { MessageSenderService } from '../message.sender/message.sender.service';
+import { MessageSenderService } from '../../actions-handlers/message.sender/message.sender.service';
 import {
   errorAmountMessage,
   errorInsufficientFunds,
   passMoneySuccessMessage,
   userBalance,
 } from '../../utils/message-sender.utils';
+import { GroupMember } from 'src/group/models/group-member.model';
 
 @Injectable()
 export class BalanceHandlerService {
@@ -28,21 +28,14 @@ export class BalanceHandlerService {
 
   @OnEvent(Commands.BALANCE)
   @OnEvent(Commands.MONEY)
-  private async handleBalance(payload: CommandPayload) {
+  private async handleBalance(
+    payload: CommandPayload,
+    user: GroupMember,
+    target: GroupMember,
+  ) {
     const { groupJid, WaMessage, client } = payload;
 
-    const needTarget = !!getMentionedJids(WaMessage).length;
-
-    const { user, target } =
-      await this._accountHandler.genericVerifyUserColdownAndTarget(
-        payload,
-        false,
-        needTarget,
-      );
-
-    const response = needTarget ? target : user;
-    // No user found
-    if (!response) return;
+    const response = target.name ? target : user;
 
     await this._messageSender.handleMessage(
       groupJid,
@@ -53,20 +46,14 @@ export class BalanceHandlerService {
   }
 
   @OnEvent(Commands.PASS_MONEY)
-  private async handlePassMoney(payload: CommandPayload) {
+  private async handlePassMoney(
+    payload: CommandPayload,
+    user: GroupMember,
+    target: GroupMember,
+  ) {
     const { groupJid, args, WaMessage, client } = payload;
 
-    const { user, target } =
-      await this._accountHandler.genericVerifyUserColdownAndTarget(
-        payload,
-        false,
-        true,
-      );
-
     const { amount, isNumber } = getNumberFromString(args[1]);
-
-    // No user or target found
-    if (!user || !target) return;
 
     if (!isNumber) {
       await this._messageSender.handleMessage(
@@ -88,10 +75,8 @@ export class BalanceHandlerService {
       return;
     }
 
-    user.balance -= amount;
-    await this._groupService.newBalanceMember(user, false);
-    target.balance += amount;
-    await this._groupService.newBalanceMember(target, false);
+    await this._groupService.updateBalance(user, {}, amount * -1);
+    await this._groupService.updateBalance(target, {}, amount);
 
     await this._messageSender.handleMessage(
       groupJid,

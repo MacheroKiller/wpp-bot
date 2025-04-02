@@ -116,11 +116,11 @@ export const storeMessage = `🐽 Welcome to ${theGreatPiggyNin}
 - ID   -  Item   -   Price`;
 
 export const toolStoreMessage = `${storeMessage}
-- (WP) - Wooden Pickaxe: *$1'000 MP*
-- (SP) - Stone Pickaxe: *$10'000 MP*
-- (GP) - Gold Pickaxe: *$50'000 MP*
-- (IP) - Iron Pickaxe: *$100'000 MP*
-- (DP) - Diamond Pickaxe: *$1M MP*
+- (WP) - Wooden Pickaxe: *$10'000 MP*
+- (SP) - Stone Pickaxe: *$50'000 MP*
+- (GP) - Gold Pickaxe: *$200'000 MP*
+- (IP) - Iron Pickaxe: *$700'000 MP*
+- (DP) - Diamond Pickaxe: *$3.5M MP*
 - (NP) - Netherite Pickaxe: *$10M MP*
 ${infoExtraMessage}`;
 
@@ -147,3 +147,19 @@ export const attackSuccessMessage = (
 
 export const attackFailMessage = (resultAttack: number, target: GroupMember) =>
   `The police caught you trying to steal from *${target.name}*! and made you pay him *${getFormatedNumber(resultAttack)}*`;
+
+// Roulette Handler
+
+export const rouletteHelperMessage = `The command is: *!roulette <amount> p:<color/number> p:<color/number> ...*`;
+
+export const rouletteHelperBetMessage = `Error: You need to write the color or number for just one bet. Example: *!roulette 100 p:red p:12*`;
+
+export const rouletteHelperPredictionMessage = `You need to write *p:* before the color or number, like this: *p:red* or *p:12*`;
+
+export const rouletteErrorPredictionMessage = `Only numbers from *0 to 36* are allowed and the colors *red* and *black*`;
+
+export const rouletteColor = ['p:red', 'p:black'];
+
+export const rouletteColorWithoutP = ['red', 'black'];
+
+export const rouletteNumbers = Array.from({ length: 37 }, (_, i) => i);

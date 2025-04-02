@@ -19,10 +19,26 @@ export class GroupService {
   }
 
   newBalanceMember(groupMember: GroupMember, updateTime: boolean = true) {
+    const newTime = new Date();
     return this._groupMemberModel.findOneAndUpdate(
       { jid: groupMember.jid, groupJid: groupMember.groupJid },
-      { $set: { balance: groupMember.balance } },
+      { $set: { balance: groupMember.balance, stealCooldown: newTime } },
       { new: true, timestamps: updateTime },
+    );
+  }
+
+  updateBalance(
+    groupMember: GroupMember,
+    updateCooldown: Partial<GroupMember> = {}, // Specific cooldown to update: stealCooldown, mineCooldown, etc
+    updateBalance: number, // Amount to increment or decrement
+  ) {
+    return this._groupMemberModel.findOneAndUpdate(
+      { jid: groupMember.jid, groupJid: groupMember.groupJid },
+      {
+        $set: { ...updateCooldown },
+        $inc: { balance: updateBalance },
+      },
+      { new: true },
     );
   }
 

@@ -1,20 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
-import { Commands } from 'src/command/constants/command.constants';
+import { Cooldown } from 'src/command/constants/command.constants';
 import { CommandPayload } from 'src/command/interfaces/command.interfaces';
 import { GroupMember } from 'src/group/models/group-member.model';
 import { GroupService } from 'src/group/services/group.service';
-import {
-  getMentionedJids,
-  jidToNumber,
-} from 'src/whatsapp-client/event-handlers/message-handler/utils/message-handler.utils';
+import { getMentionedJids } from 'src/whatsapp-client/event-handlers/message-handler/utils/message-handler.utils';
 import { userAndTarget } from '../interfaces/game-handler.interface';
-import { MessageSenderService } from '../message.sender/message.sender.service';
+import { MessageSenderService } from '../../actions-handlers/message.sender/message.sender.service';
 import {
-  accountAlreadyExists,
   antiSpamMessage,
   needMentionSomeone,
-  newAccountCreated,
   noAccountCreated,
   noUserFound,
 } from '../../utils/message-sender.utils';
@@ -26,47 +20,11 @@ export class AccountHandlerService {
     private readonly _messageSender: MessageSenderService,
   ) {}
 
-  @OnEvent(Commands.CREATE_ACCOUNT)
-  private async handleCreateAccount(payload: CommandPayload) {
-    const { groupJid, senderJid, WaMessage, client } = payload;
-
-    const response = await this._groupService.getGroupMemberByJidAndGroup(
-      senderJid,
-      groupJid,
-    );
-
-    if (response) {
-      await this._messageSender.handleMessage(
-        groupJid,
-        WaMessage,
-        client,
-        accountAlreadyExists,
-      );
-      return;
-    }
-
-    const groupMember = {
-      jid: jidToNumber(senderJid),
-      name: WaMessage.pushName,
-      groupJid,
-      balance: 250,
-    } as GroupMember;
-    await this._groupService.createGroupMember(groupMember);
-
-    // Sendind message
-    await this._messageSender.handleMessage(
-      groupJid,
-      WaMessage,
-      client,
-      newAccountCreated(groupMember.balance),
-    );
-  }
-
-  async genericVerifyUserColdownAndTarget(
+  async genericVerifyUserCooldownAndTarget(
     payload: CommandPayload,
     isColdown: boolean,
     needTarget: boolean,
-  ) {
+  ): Promise<userAndTarget> {
     const { groupJid, senderJid, WaMessage, client } = payload;
 
     const user = await this._groupService.getGroupMemberByJidAndGroup(
@@ -88,7 +46,7 @@ export class AccountHandlerService {
       return errorCase;
     }
 
-    if (isColdown && !(await this.handleCommandColdown(payload, user))) {
+    if (isColdown) {
       return errorCase;
     }
 
@@ -122,23 +80,101 @@ export class AccountHandlerService {
     return { user, target } as userAndTarget;
   }
 
-  private async handleCommandColdown(
+  async genericVerifier(
+    payload: CommandPayload,
+    cooldown: number,
+    needTarget: boolean,
+    command: string,
+  ): Promise<userAndTarget> {
+    const { groupJid, senderJid, WaMessage, client } = payload;
+
+    const user = await this._groupService.getGroupMemberByJidAndGroup(
+      senderJid,
+      groupJid,
+    );
+
+    const errorCase = {} as userAndTarget;
+
+    // User verifier
+    if (!user) {
+      await this._messageSender.handleMessage(
+        groupJid,
+        WaMessage,
+        client,
+        noAccountCreated,
+      );
+      return errorCase;
+    }
+
+    // Command Cooldown verifier
+    if (
+      cooldown !== 0 &&
+      !(await this.handleCommandCooldown(payload, user, cooldown, command))
+    ) {
+      return errorCase;
+    }
+
+    const mentionedJid = getMentionedJids(WaMessage);
+
+    // Si hay una mención, buscar al miembro del grupo
+    const target = mentionedJid.length
+      ? await this._groupService.getGroupMemberByJidAndGroup(
+          mentionedJid[0],
+          groupJid,
+        )
+      : ({} as GroupMember);
+
+    if (needTarget) {
+      // Si se necesita un target, pero no se mencionó a nadie
+      if (!mentionedJid.length) {
+        await this._messageSender.handleMessage(
+          groupJid,
+          WaMessage,
+          client,
+          needMentionSomeone,
+        );
+        return errorCase;
+      }
+
+      // Si se mencionó a alguien pero no existe en la base de datos
+      if (!target) {
+        await this._messageSender.handleMessage(
+          groupJid,
+          WaMessage,
+          client,
+          noUserFound,
+        );
+        return errorCase;
+      }
+    }
+
+    return { user, target } as userAndTarget;
+  }
+
+  private async handleCommandCooldown(
     payload: CommandPayload,
     user: GroupMember,
+    commandCooldown: number, // command cooldown
+    command: string,
   ): Promise<boolean> {
     const { groupJid, WaMessage, client } = payload;
 
-    if (user.updatedAt.getTime() === user.createdAt.getTime()) {
-      return true;
+    if (commandCooldown === 0) {
+      return false;
     }
 
-    const timeToWait = 0.75;
-    const date = new Date().getTime();
-    const time = date - user.updatedAt.getTime();
-    const minutes = time / 60000;
-    const timeToWaitInSeconds = Math.floor((timeToWait - minutes) * 60);
+    const identifyCooldown = command + Cooldown;
 
-    if (timeToWait > minutes) {
+    const lastTimeUserCommand = user[identifyCooldown];
+    console.log(identifyCooldown);
+    console.log(lastTimeUserCommand);
+
+    const date = new Date().getTime();
+    const time = date - lastTimeUserCommand.getTime();
+    const seconds = time / 1000;
+    const timeToWaitInSeconds = Math.floor(commandCooldown - seconds);
+
+    if (commandCooldown > seconds) {
       await this._messageSender.handleMessage(
         groupJid,
         WaMessage,

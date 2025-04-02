@@ -4,7 +4,7 @@ import { Commands } from 'src/command/constants/command.constants';
 import { CommandPayload } from 'src/command/interfaces/command.interfaces';
 import { AccountHandlerService } from '../account.handler/account.handler.service';
 import { GroupService } from 'src/group/services/group.service';
-import { MessageSenderService } from '../message.sender/message.sender.service';
+import { MessageSenderService } from '../../actions-handlers/message.sender/message.sender.service';
 import {
   errorDowngradeMessage,
   errorItemNoFoundMessage,
@@ -12,6 +12,7 @@ import {
   errorSameItemMessage,
   itemBoughtMessage,
 } from '../../utils/message-sender.utils';
+import { GroupMember } from 'src/group/models/group-member.model';
 
 @Injectable()
 export class BuyHandlerService {
@@ -22,25 +23,14 @@ export class BuyHandlerService {
   ) {}
 
   @OnEvent(Commands.BUY)
-  private async handleBuy(payload: CommandPayload) {
+  private async handleBuy(payload: CommandPayload, user: GroupMember) {
     const { groupJid, args, WaMessage, client } = payload;
-
-    const { user } =
-      await this._accountHandler.genericVerifyUserColdownAndTarget(
-        payload,
-        false,
-        false,
-      );
-
-    if (!user) return;
 
     const itemsStore = await this._groupService.getStoreItems();
 
     const itemToFind = args[0] ? args[0].toUpperCase() : '';
 
     const newItemToBuy = itemsStore.find((item) => item.id === itemToFind);
-
-    const oldItem = itemsStore.find((item) => item.id === user.tool);
 
     if (!newItemToBuy) {
       await this._messageSender.handleMessage(
@@ -63,6 +53,7 @@ export class BuyHandlerService {
     }
 
     const userItem = newItemToBuy.type === 'tool' ? user.tool : user.weapon;
+    const oldItem = itemsStore.find((item) => item.id === userItem);
 
     if (userItem === newItemToBuy.id) {
       await this._messageSender.handleMessage(
@@ -84,14 +75,14 @@ export class BuyHandlerService {
       return;
     }
 
-    user.balance -= newItemToBuy.price;
-    await this._groupService.newBalanceMember(user, false);
+    const finalPrice = newItemToBuy.price * -1;
+    await this._groupService.updateBalance(user, {}, finalPrice);
     await this._groupService.newItemMember(user, newItemToBuy);
     await this._messageSender.handleMessage(
       groupJid,
       WaMessage,
       client,
-      itemBoughtMessage(newItemToBuy, user.balance),
+      itemBoughtMessage(newItemToBuy, user.balance + finalPrice),
     );
   }
 }

@@ -4,7 +4,7 @@ import { Commands } from 'src/command/constants/command.constants';
 import { CommandPayload } from 'src/command/interfaces/command.interfaces';
 import { GroupService } from 'src/group/services/group.service';
 import { AccountHandlerService } from '../account.handler/account.handler.service';
-import { MessageSenderService } from '../message.sender/message.sender.service';
+import { MessageSenderService } from '../../actions-handlers/message.sender/message.sender.service';
 import {
   errorStoreMessage,
   storeSide,

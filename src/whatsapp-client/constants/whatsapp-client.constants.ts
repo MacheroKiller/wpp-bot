@@ -23,28 +23,6 @@ export const WaClientConfig: Partial<UserFacingSocketConfig> = {
   linkPreviewImageThumbnailWidth: 200,
 };
 
-// Owner phone number
-export const phoneNumber = '573125791772';
-
-// Create a const object to simulate an enum dynamically
-export enum WhatsappCommands {
-  KISS_COMMAND = '!kiss',
-  PUNCH_COMMAND = '!punch',
-  HELP_COMMAND = '!help',
-  EASTER_EGG_COMMAND = '!easteregg',
-}
-
-// Path where the files is located
-
-const path = './src/command/event-handlers/assets/';
-
-export enum PathFile {
-  GIF_FILE = path + '1.mp4',
-  IMAGE_KISS_PATH = path + 'kiss',
-  IMAGE_PUNCH_PATH = path + 'punch',
-  IMAGE_EASTER_EGG_PATH = path + 'easterEgg',
-}
-
 // Create a const object to simulate an enum dynamically
 export enum WhatsappEvents {
   CONNECTION_UPDATE = 'connection.update',
